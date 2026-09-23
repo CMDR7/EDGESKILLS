@@ -4,25 +4,131 @@
 <body>
 <script>
 "use strict";
-function clean(v,f){return typeof v==="string"&&v.trim()?v.trim():f;}
-function makePackage(i){
- const topic=clean(i.topic,"Untitled topic"), type=clean(i.contentType,"package").toLowerCase();
- const tone=clean(i.tone,"clear, intelligent, engaging"), audience=clean(i.audience,"general social audience");
- const source=clean(i.sourceText,"");
- const base={topic,contentType:type,tone,audience,sourceProvided:Boolean(source),
- hookPrompt:"Create a concise curiosity-driven opening without clickbait.",
- captionStructure:["Hook","Context or value","Key takeaway","Call to action"],
- hashtagGuidance:"Use a small, relevant set. Avoid generic hashtag stuffing.",
- visualBrief:"Mobile-first visual concept with one dominant subject, strong hierarchy, readable text and safe margins."};
- if(type==="post")return base;
- if(type==="carousel")return {...base,carousel:["Slide 1: Cover hook","Slide 2: Context","Slide 3: Key insight","Slide 4: Evidence/example","Slide 5: Practical implication","Slide 6: Takeaway + CTA"]};
- if(type==="reel")return {...base,reel:{hook:"First 3 seconds: strongest curiosity gap.",scenes:"Short visual sequence.",voiceover:"Concise narration.",onscreenText:"Short readable text beats.",cta:"One clear action."}};
- if(type==="story")return {...base,story:["Frame 1: Hook","Frame 2: Context","Frame 3: Insight","Frame 4: Interactive element","Frame 5: CTA"]};
- return {...base,carousel:["Slide 1: Cover hook","Slide 2: Context","Slide 3: Key insight","Slide 4: Evidence/example","Slide 5: Implication","Slide 6: Takeaway + CTA"],reel:{hook:"First 3 seconds: strongest curiosity gap.",scenes:"Short visual sequence.",voiceover:"Concise narration.",onscreenText:"Short readable text beats.",cta:"One clear action."},story:["Frame 1: Hook","Frame 2: Context","Frame 3: Insight","Frame 4: Poll/question","Frame 5: CTA"]};
+
+function clean(v, f) {
+  return typeof v === "string" && v.trim() ? v.trim() : f;
 }
-window["ai_edge_gallery_get_result"]=async function(data){
- try{return JSON.stringify({result:makePackage(JSON.parse(data||"{}"))});}
- catch(e){return JSON.stringify({error:"EDGE-INSTA-STUDIO failed: "+e.message});}
+
+function normalizeType(v) {
+  const t = clean(v, "").toLowerCase();
+  if (t === "post") return "post";
+  if (t === "carousel") return "carousel";
+  if (t === "reel") return "reel";
+  if (t === "story") return "story";
+  if (t === "package") return "package";
+  return "post";
+}
+
+function makePackage(i) {
+  const topic = clean(i.topic, "Untitled topic");
+  const type = normalizeType(i.contentType);
+  const tone = clean(i.tone, "clear, intelligent, engaging");
+  const audience = clean(i.audience, "general social audience");
+  const source = clean(i.sourceText, "");
+
+  const base = {
+    topic,
+    contentType: type,
+    tone,
+    audience,
+    sourceProvided: Boolean(source),
+    instructions: {
+      original: true,
+      beginnerFriendly: true,
+      humanLanguage: true,
+      avoidTechnicalJargon: true,
+      proofreadBeforeReturn: true,
+      correctGrammarBeforeReturn: true,
+      removeDuplicatesBeforeReturn: true,
+      completeAllFieldsBeforeReturn: true,
+      noUnsupportedClaims: true
+    },
+    hookPrompt: "Create a concise curiosity-driven opening without clickbait.",
+    captionStructure: ["Hook", "Context or value", "Key takeaway"],
+    hashtagGuidance: "Use a small, relevant set. Avoid generic hashtag stuffing.",
+    visualBrief: "Mobile-first visual concept with one dominant subject or idea, clear hierarchy, readable text, safe margins, and a complete description."
+  };
+
+  if (type === "post") {
+    return {
+      ...base,
+      requiredOutput: ["Hook", "Caption", "CTA", "Hashtags", "Visual Brief"],
+      outputRule: "Return POST only. Do not generate Carousel, Reel, Story, or Package sections."
+    };
+  }
+
+  if (type === "carousel") {
+    return {
+      ...base,
+      carousel: [
+        "Slide 1: Cover hook",
+        "Slide 2: Context",
+        "Slide 3: Key insight",
+        "Slide 4: Evidence/example",
+        "Slide 5: Practical implication",
+        "Slide 6: Takeaway + CTA"
+      ],
+      requiredOutput: ["Slide-by-slide structure", "CTA where appropriate", "Hashtags", "Visual Brief"],
+      outputRule: "Return CAROUSEL only. Do not generate Post, Reel, Story, or Package sections."
+    };
+  }
+
+  if (type === "reel") {
+    return {
+      ...base,
+      reel: {
+        hook: "First 3 seconds: strongest curiosity gap.",
+        scenes: "Short visual sequence.",
+        voiceover: "Concise, natural narration written for the ear.",
+        onscreenText: "Short readable text beats.",
+        cta: "One relevant action or question."
+      },
+      requiredOutput: ["First 3-second Hook", "Scene Sequence", "Voiceover", "On-screen Text", "CTA", "Hashtags", "Visual Brief"],
+      outputRule: "Return REEL only. Do not generate Post, Carousel, Story, or Package sections."
+    };
+  }
+
+  if (type === "story") {
+    return {
+      ...base,
+      story: [
+        "Frame 1: Hook",
+        "Frame 2: Context or explanation",
+        "Frame 3: Insight",
+        "Frame 4: Interactive element when useful",
+        "Frame 5: Closing frame or CTA"
+      ],
+      requiredOutput: ["Frame Sequence", "Hook", "Context or Explanation", "Insight", "Interactive Element when appropriate", "CTA or closing frame", "Hashtags", "Visual Brief"],
+      outputRule: "Return STORY only. Do not generate Post, Carousel, Reel, or Package sections."
+    };
+  }
+
+  return {
+    ...base,
+    carousel: ["Slide 1: Cover hook", "Slide 2: Context", "Slide 3: Key insight", "Slide 4: Evidence/example", "Slide 5: Implication", "Slide 6: Takeaway + CTA"],
+    reel: {
+      hook: "First 3 seconds: strongest curiosity gap.",
+      scenes: "Short visual sequence.",
+      voiceover: "Concise, natural narration written for the ear.",
+      onscreenText: "Short readable text beats.",
+      cta: "One relevant action or question."
+    },
+    story: ["Frame 1: Hook", "Frame 2: Context", "Frame 3: Insight", "Frame 4: Poll/question", "Frame 5: CTA"],
+    requiredOutput: ["Post", "Carousel", "Reel", "Story"],
+    outputRule: "Return the complete PACKAGE only when the user explicitly requests a package."
+  };
+}
+
+window["ai_edge_gallery_get_result"] = async function(data) {
+  try {
+    return JSON.stringify({
+      result: makePackage(JSON.parse(data || "{}"))
+    });
+  } catch (e) {
+    return JSON.stringify({
+      error: "EDGE-INSTA-STUDIO failed: " + e.message
+    });
+  }
 };
 </script>
 </body>
