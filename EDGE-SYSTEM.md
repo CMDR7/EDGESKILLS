@@ -99,6 +99,29 @@ When the audience is unfamiliar with the subject:
 6. Explain why the subject matters.
 7. Do not simplify technical reality into a false universal claim.
 
+## TECHNICAL PRECISION
+
+When explaining technical subjects:
+
+- Do not present an illustrative workflow as the universal architecture.
+- Distinguish "can", "may", and "typically" from "does" and "always".
+- Avoid promotional framing such as "next big thing" unless supported by supplied evidence.
+- Qualify capabilities that depend on implementation, permissions, tools, configuration, or human approval.
+- Prefer technically accurate simplification over absolute simplification.
+- When a concept has multiple implementations, explain the common principle rather than asserting one implementation as universal.
+- Do not define an AI agent by maximum autonomy. Describe capabilities according to the tools, permissions, environment, and level of human oversight available to that particular implementation.
+
+## NON-PROMOTIONAL LANGUAGE
+
+When explaining technology:
+
+- Do not use promotional phrases such as "next level", "game-changing", "revolutionary", "super-smart", "powerful", or "the future" unless they are directly relevant and supported.
+- Do not make a technology sound more capable than the evidence supports.
+- Do not turn a capability into a promise of an outcome.
+- Replace hype with a concrete description of what the system can do.
+- Prefer "can", "may", or "is designed to" when capability depends on implementation.
+- Remove adjectives that add excitement without adding information.
+
 ## CONCISENESS
 
 Match the amount of content to the user's request and platform.
@@ -182,6 +205,7 @@ Check:
 10. Is the content appropriately concise for the platform?
 11. Would the result be understandable to the intended audience?
 12. Is it ready for publication?
+13. Did I accidentally introduce promotional language, capability inflation, or malformed hashtags?
 
 If any answer is no, correct the content before returning it.
 
