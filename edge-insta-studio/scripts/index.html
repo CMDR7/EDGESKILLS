@@ -1,29 +1,32 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>EDGE-INSTA-STUDIO</title></head>
+<head><meta charset="utf-8"><title>EDGE-INSTA-STUDIO V2</title></head>
 <body>
 <script>
 "use strict";
 
-function clean(v, f) {
-  return typeof v === "string" && v.trim() ? v.trim() : f;
+function clean(v, fallback) {
+  return typeof v === "string" && v.trim() ? v.trim() : fallback;
 }
 
 function normalizeType(v) {
   const t = clean(v, "").toLowerCase();
-  if (t === "post") return "post";
-  if (t === "carousel") return "carousel";
-  if (t === "reel") return "reel";
-  if (t === "story") return "story";
-  if (t === "package") return "package";
+  if (t === "post" || t === "carousel" || t === "reel" || t === "story" || t === "package") return t;
   return "post";
 }
 
-function makePackage(i) {
-  const topic = clean(i.topic, "Untitled topic");
+function normalizeDepth(v) {
+  const d = clean(v, "").toLowerCase();
+  if (d === "brief" || d === "standard" || d === "detailed") return d;
+  return "standard";
+}
+
+function makeResult(i) {
+  const topic = clean(i.topic, "Source material");
   const type = normalizeType(i.contentType);
-  const tone = clean(i.tone, "clear, intelligent, engaging");
+  const tone = clean(i.tone, "clear, intelligent, natural");
   const audience = clean(i.audience, "general social audience");
+  const depth = normalizeDepth(i.summaryDepth);
   const source = clean(i.sourceText, "");
 
   const base = {
@@ -31,103 +34,68 @@ function makePackage(i) {
     contentType: type,
     tone,
     audience,
+    summaryDepth: depth,
     sourceProvided: Boolean(source),
+    sourceLocked: true,
+    externalResearch: false,
     instructions: {
-      original: true,
-      beginnerFriendly: true,
+      summarizeOnly: true,
+      preserveMeaning: true,
+      preserveAttribution: true,
+      preserveUncertainty: true,
+      noUnsupportedClaims: true,
+      noExternalFacts: true,
+      noWebDependency: true,
       humanLanguage: true,
-      avoidTechnicalJargon: true,
+      beginnerFriendly: true,
       proofreadBeforeReturn: true,
       correctGrammarBeforeReturn: true,
       removeDuplicatesBeforeReturn: true,
-      completeAllFieldsBeforeReturn: true,
-      noUnsupportedClaims: true
-    },
-    hookPrompt: "Create a concise curiosity-driven opening without clickbait.",
-    captionStructure: ["Hook", "Context or value", "Key takeaway"],
-    hashtagGuidance: "Use a small, relevant set. Avoid generic hashtag stuffing.",
-    visualBrief: "Mobile-first visual concept with one dominant subject or idea, clear hierarchy, readable text, safe margins, and a complete description."
+      completeAllFieldsBeforeReturn: true
+    }
   };
 
-  if (type === "post") {
-    return {
-      ...base,
-      requiredOutput: ["Hook", "Caption", "CTA", "Hashtags", "Visual Brief"],
-      outputRule: "Return POST only. Do not generate Carousel, Reel, Story, or Package sections."
-    };
+  if (!source) {
+    return {...base, error:"No sourceText was supplied. Provide source material to summarize."};
   }
 
-  if (type === "carousel") {
-    return {
-      ...base,
-      carousel: [
-        "Slide 1: Cover hook",
-        "Slide 2: Context",
-        "Slide 3: Key insight",
-        "Slide 4: Evidence/example",
-        "Slide 5: Practical implication",
-        "Slide 6: Takeaway + CTA"
-      ],
-      requiredOutput: ["Slide-by-slide structure", "CTA where appropriate", "Hashtags", "Visual Brief"],
-      outputRule: "Return CAROUSEL only. Do not generate Post, Reel, Story, or Package sections."
-    };
-  }
+  if (type === "post") return {
+    ...base,
+    requiredOutput:["HOOK","CAPTION","CTA","HASHTAGS","VISUAL BRIEF"],
+    outputRule:"Return POST only. Summarize and adapt the supplied source. Do not add external facts."
+  };
 
-  if (type === "reel") {
-    return {
-      ...base,
-      reel: {
-        hook: "First 3 seconds: strongest curiosity gap.",
-        scenes: "Short visual sequence.",
-        voiceover: "Concise, natural narration written for the ear.",
-        onscreenText: "Short readable text beats.",
-        cta: "One relevant action or question."
-      },
-      requiredOutput: ["First 3-second Hook", "Scene Sequence", "Voiceover", "On-screen Text", "CTA", "Hashtags", "Visual Brief"],
-      outputRule: "Return REEL only. Do not generate Post, Carousel, Story, or Package sections."
-    };
-  }
+  if (type === "carousel") return {
+    ...base,
+    requiredOutput:["SLIDE STRUCTURE","CTA","HASHTAGS","VISUAL BRIEF"],
+    outputRule:"Return CAROUSEL only. Extract and sequence the source's key information. Do not add external facts."
+  };
 
-  if (type === "story") {
-    return {
-      ...base,
-      story: [
-        "Frame 1: Hook",
-        "Frame 2: Context or explanation",
-        "Frame 3: Insight",
-        "Frame 4: Interactive element when useful",
-        "Frame 5: Closing frame or CTA"
-      ],
-      requiredOutput: ["Frame Sequence", "Hook", "Context or Explanation", "Insight", "Interactive Element when appropriate", "CTA or closing frame", "Hashtags", "Visual Brief"],
-      outputRule: "Return STORY only. Do not generate Post, Carousel, Reel, or Package sections."
-    };
-  }
+  if (type === "reel") return {
+    ...base,
+    requiredOutput:["HOOK","SCENE SEQUENCE","VOICEOVER","ON-SCREEN TEXT","CTA","HASHTAGS","VISUAL BRIEF"],
+    outputRule:"Return REEL only. Convert the supplied source into concise spoken narration and visuals without inventing information."
+  };
+
+  if (type === "story") return {
+    ...base,
+    requiredOutput:["FRAME SEQUENCE","INTERACTIVE ELEMENT","CTA OR CLOSING","HASHTAGS","VISUAL BRIEF"],
+    outputRule:"Return STORY only. Divide the supplied source into concise frames without adding unsupported information."
+  };
 
   return {
     ...base,
-    carousel: ["Slide 1: Cover hook", "Slide 2: Context", "Slide 3: Key insight", "Slide 4: Evidence/example", "Slide 5: Implication", "Slide 6: Takeaway + CTA"],
-    reel: {
-      hook: "First 3 seconds: strongest curiosity gap.",
-      scenes: "Short visual sequence.",
-      voiceover: "Concise, natural narration written for the ear.",
-      onscreenText: "Short readable text beats.",
-      cta: "One relevant action or question."
-    },
-    story: ["Frame 1: Hook", "Frame 2: Context", "Frame 3: Insight", "Frame 4: Poll/question", "Frame 5: CTA"],
-    requiredOutput: ["Post", "Carousel", "Reel", "Story"],
-    outputRule: "Return the complete PACKAGE only when the user explicitly requests a package."
+    requiredOutput:["POST","CAROUSEL","REEL","STORY"],
+    outputRule:"Return the complete PACKAGE only when explicitly requested. All formats must derive from the same supplied source."
   };
 }
 
 window["ai_edge_gallery_get_result"] = async function(data) {
   try {
-    return JSON.stringify({
-      result: makePackage(JSON.parse(data || "{}"))
-    });
+    const input = JSON.parse(data || "{}");
+    return JSON.stringify({result:makeResult(input)});
   } catch (e) {
-    return JSON.stringify({
-      error: "EDGE-INSTA-STUDIO failed: " + e.message
-    });
+    return JSON.stringify({error:"EDGE-INSTA-STUDIO V2 failed: " + e.message});
   }
 };
 </script>
